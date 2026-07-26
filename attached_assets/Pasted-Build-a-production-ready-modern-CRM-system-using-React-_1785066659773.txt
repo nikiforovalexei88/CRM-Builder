@@ -1,0 +1,115 @@
+Build a production-ready modern CRM system using React + TypeScript + Vite, Tailwind CSS, shadcn/ui, PostgreSQL and Prisma ORM. The application must look like a premium SaaS product, inspired by HubSpot, Linear and Notion, with a clean light theme and blue accents. The attached Excel workbook is the source of truth.
+
+IMPORT:
+- Read the worksheets "Лиды Паша" and "Лиды Алина".
+- Normalize both sheets into one Leads table using the structure of "Лиды Алина".
+- Read the "Оплаты" sheet into Payments.
+- Read the Dashboard sheet to initialize plans and KPIs.
+
+ROLES:
+1. Administrator (Manager "Vasya") can see and edit everything.
+2. Sales Managers (Alina, Pasha) can only see their own data.
+
+LOGIN:
+Create demo users:
+Admin: admin / admin123
+Manager: manager / manager123
+Prefill login form automatically.
+
+MODULES
+
+1. Authentication
+Role based access, protected routes.
+
+2. Leads
+Kanban board with drag-and-drop.
+Statuses:
+New
+In Progress
+Proposal Sent
+Waiting for Decision
+Paid / Closed
+
+Moving a card to Paid automatically creates a Payment.
+
+Lead card contains:
+Client, Phone, Telegram, Email, Product, Tariff, Price, Source, Manager, Status, Notes, Attachments, Activity History.
+
+3. Payments
+Scrollable table with sticky header.
+Dashboard cards above the table.
+Filters:
+Manager
+Tariff
+Payment method
+Month
+Status
+Sorting by every column.
+
+4. Executive Dashboard
+Visible only to Admin.
+KPIs:
+Revenue
+Net Profit
+Deals
+Conversion
+Average Check
+Plan vs Actual
+Monthly cash flow
+Revenue trend
+Manager comparison
+Top products
+
+5. Planning
+Monthly plans:
+Minimum
+Target
+Maximum
+Per product and per employee.
+History must be stored by month.
+
+6. Employees
+CRUD.
+Salary, Base Bonus, Multipliers, Minimum Plan, Target Plan, Maximum Plan.
+Historical changes by month.
+
+7. Manager Workspace
+Today's tasks
+Current bonus
+Remaining amount to target
+Current multiplier
+Open deals
+Clickable cards opening the Kanban.
+
+UX:
+No page scrolling. Every module occupies the viewport.
+Internal scrolling only for Kanban columns and tables.
+Responsive.
+Fast.
+Beautiful animations.
+Professional spacing.
+
+GLOBAL FILTERS:
+Manager
+Month
+Tariff
+Product
+Status
+
+Search everywhere.
+
+TECH:
+React
+TypeScript
+Vite
+Tailwind
+shadcn/ui
+Prisma
+PostgreSQL
+
+Create clean architecture.
+No mockups.
+No TODOs.
+Production-ready.
+
+Finally generate README, .env.example, Prisma schema, seed data and prepare the project for GitHub.

@@ -1,0 +1,117 @@
+The login page is currently broken.
+
+When I enter the username and password and click "Sign In", nothing happens (or the application throws an error instead of logging in).
+
+I want you to perform a complete authentication audit and fix the entire authentication flow instead of applying a temporary workaround.
+
+Please do the following:
+
+1. Debug the complete login flow from frontend to backend.
+
+2. Check the browser console for JavaScript errors.
+
+3. Check the backend/server logs.
+
+4. Check all API requests made during login.
+
+5. Verify that the login request actually reaches the backend.
+
+6. Verify that the backend returns the correct response.
+
+7. Verify that the frontend correctly processes successful and failed authentication.
+
+8. Check routing after login.
+
+9. Check session creation.
+
+10. Check JWT/session/cookie generation if used.
+
+11. Check database connection.
+
+12. Check whether demo users actually exist.
+
+13. If demo users do not exist, automatically create them using seed data.
+
+Create these accounts:
+
+Administrator
+username: admin
+password: admin123
+
+Manager
+username: manager
+password: manager123
+
+14. Verify password hashing.
+
+If passwords are hashed, ensure the hashes match.
+
+If passwords are stored incorrectly, recreate them properly.
+
+15. Verify all environment variables.
+
+16. Verify Prisma migrations.
+
+17. Verify the database schema.
+
+18. Verify authentication middleware.
+
+19. Verify role-based access.
+
+20. Verify protected routes.
+
+21. Verify redirect after successful login.
+
+Administrator must be redirected to:
+
+/dashboard
+
+Manager must be redirected to:
+
+/workspace
+
+22. If authentication fails, display a proper error message instead of failing silently.
+
+23. If an exception occurs, display the error in the console and fix the root cause.
+
+24. Remove every authentication bug.
+
+25. Do not mock authentication.
+
+The application must authenticate using the real database.
+
+26. Run a complete end-to-end authentication test.
+
+The following scenarios must pass:
+
+✓ Admin login
+
+✓ Manager login
+
+✓ Invalid password
+
+✓ Invalid username
+
+✓ Logout
+
+✓ Refresh page
+
+✓ Session persistence
+
+✓ Protected routes
+
+27. After fixing everything, provide a report containing:
+
+• Root cause
+
+• Files changed
+
+• Database changes
+
+• Authentication flow
+
+• Test results
+
+Do not stop after fixing the first visible issue.
+
+Keep debugging until the entire authentication system works correctly.

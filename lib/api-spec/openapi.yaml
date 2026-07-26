@@ -3,20 +3,26 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: CRM API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: leads
+  - name: payments
+  - name: dashboard
+  - name: planning
+  - name: employees
+  - name: workspace
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +30,845 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: OK
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Unauthorized
+
+  /leads:
+    get:
+      operationId: listLeads
+      tags: [leads]
+      summary: List leads
+      parameters:
+        - in: query
+          name: managerId
+          schema: { type: ["integer", "null"] }
+        - in: query
+          name: status
+          schema: { type: ["string", "null"] }
+        - in: query
+          name: tariff
+          schema: { type: ["string", "null"] }
+        - in: query
+          name: month
+          schema: { type: ["string", "null"] }
+        - in: query
+          name: search
+          schema: { type: ["string", "null"] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lead"
+    post:
+      operationId: createLead
+      tags: [leads]
+      summary: Create lead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeadInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+
+  /leads/{id}:
+    get:
+      operationId: getLead
+      tags: [leads]
+      summary: Get lead
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateLead
+      tags: [leads]
+      summary: Update lead
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeadUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteLead
+      tags: [leads]
+      summary: Delete lead
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /leads/{id}/move:
+    patch:
+      operationId: moveLead
+      tags: [leads]
+      summary: Move lead to a new status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveLeadInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+        "404":
+          description: Not found
+
+  /leads/{id}/notes:
+    post:
+      operationId: addLeadNote
+      tags: [leads]
+      summary: Add activity note to lead
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityNoteInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityNote"
+        "404":
+          description: Not found
+
+  /leads/{id}/activities:
+    get:
+      operationId: listLeadActivities
+      tags: [leads]
+      summary: Get activity history for a lead
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityNote"
+
+  /payments:
+    get:
+      operationId: listPayments
+      tags: [payments]
+      summary: List payments
+      parameters:
+        - in: query
+          name: managerId
+          schema: { type: ["integer", "null"] }
+        - in: query
+          name: tariff
+          schema: { type: ["string", "null"] }
+        - in: query
+          name: paymentMethod
+          schema: { type: ["string", "null"] }
+        - in: query
+          name: month
+          schema: { type: ["string", "null"] }
+        - in: query
+          name: status
+          schema: { type: ["string", "null"] }
+        - in: query
+          name: search
+          schema: { type: ["string", "null"] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+    post:
+      operationId: createPayment
+      tags: [payments]
+      summary: Create payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /payments/{id}:
+    get:
+      operationId: getPayment
+      tags: [payments]
+      summary: Get payment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "404":
+          description: Not found
+    patch:
+      operationId: updatePayment
+      tags: [payments]
+      summary: Update payment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "404":
+          description: Not found
+    delete:
+      operationId: deletePayment
+      tags: [payments]
+      summary: Delete payment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get executive dashboard KPIs
+      parameters:
+        - in: query
+          name: month
+          schema: { type: ["string", "null"] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/cash-flow:
+    get:
+      operationId: getCashFlow
+      tags: [dashboard]
+      summary: Monthly cash flow trend
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CashFlowEntry"
+
+  /dashboard/manager-comparison:
+    get:
+      operationId: getManagerComparison
+      tags: [dashboard]
+      summary: Manager performance comparison
+      parameters:
+        - in: query
+          name: month
+          schema: { type: ["string", "null"] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ManagerStats"
+
+  /planning:
+    get:
+      operationId: listPlans
+      tags: [planning]
+      summary: List monthly plans
+      parameters:
+        - in: query
+          name: managerId
+          schema: { type: ["integer", "null"] }
+        - in: query
+          name: month
+          schema: { type: ["string", "null"] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Plan"
+    post:
+      operationId: createPlan
+      tags: [planning]
+      summary: Create plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Plan"
+
+  /planning/{id}:
+    patch:
+      operationId: updatePlan
+      tags: [planning]
+      summary: Update plan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Plan"
+        "404":
+          description: Not found
+
+  /employees:
+    get:
+      operationId: listEmployees
+      tags: [employees]
+      summary: List employees
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Employee"
+    post:
+      operationId: createEmployee
+      tags: [employees]
+      summary: Create employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+
+  /employees/{id}:
+    get:
+      operationId: getEmployee
+      tags: [employees]
+      summary: Get employee
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateEmployee
+      tags: [employees]
+      summary: Update employee
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteEmployee
+      tags: [employees]
+      summary: Delete employee
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /workspace/my-stats:
+    get:
+      operationId: getMyStats
+      tags: [workspace]
+      summary: Manager workspace stats for current user
+      parameters:
+        - in: query
+          name: month
+          schema: { type: ["string", "null"] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceStats"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
-        status:
-          type: string
-      required:
-        - status
+        status: { type: string }
 
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+
+    AuthUser:
+      type: object
+      required: [id, name, role, username]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        role: { type: string }
+        username: { type: string }
+
+    Lead:
+      type: object
+      required: [id, clientName, status, managerId, createdAt]
+      properties:
+        id: { type: integer }
+        clientName: { type: string }
+        phone: { type: ["string", "null"] }
+        telegram: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        product: { type: ["string", "null"] }
+        tariff: { type: ["string", "null"] }
+        price: { type: ["number", "null"] }
+        netProfit: { type: ["number", "null"] }
+        source: { type: ["string", "null"] }
+        income: { type: ["string", "null"] }
+        status: { type: string }
+        notes: { type: ["string", "null"] }
+        managerId: { type: integer }
+        managerName: { type: ["string", "null"] }
+        paymentDate: { type: ["string", "null"] }
+        paymentType: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    LeadInput:
+      type: object
+      required: [clientName, status, managerId]
+      properties:
+        clientName: { type: string }
+        phone: { type: string }
+        telegram: { type: string }
+        email: { type: string }
+        product: { type: string }
+        tariff: { type: string }
+        price: { type: number }
+        netProfit: { type: number }
+        source: { type: string }
+        income: { type: string }
+        status: { type: string }
+        notes: { type: string }
+        managerId: { type: integer }
+        paymentDate: { type: string }
+        paymentType: { type: string }
+
+    LeadUpdate:
+      type: object
+      properties:
+        clientName: { type: string }
+        phone: { type: string }
+        telegram: { type: string }
+        email: { type: string }
+        product: { type: string }
+        tariff: { type: string }
+        price: { type: number }
+        netProfit: { type: number }
+        source: { type: string }
+        income: { type: string }
+        status: { type: string }
+        notes: { type: string }
+        managerId: { type: integer }
+        paymentDate: { type: string }
+        paymentType: { type: string }
+
+    MoveLeadInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+
+    ActivityNote:
+      type: object
+      required: [id, leadId, content, createdAt]
+      properties:
+        id: { type: integer }
+        leadId: { type: integer }
+        content: { type: string }
+        authorName: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    ActivityNoteInput:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string }
+
+    Payment:
+      type: object
+      required: [id, clientName, tariff, revenue, paymentDate, managerId]
+      properties:
+        id: { type: integer }
+        orderNumber: { type: ["integer", "null"] }
+        clientName: { type: string }
+        telegram: { type: ["string", "null"] }
+        tariff: { type: string }
+        revenue: { type: number }
+        netProfit: { type: ["number", "null"] }
+        receivable: { type: ["number", "null"] }
+        paymentMethod: { type: ["string", "null"] }
+        paymentDate: { type: string }
+        managerId: { type: integer }
+        managerName: { type: ["string", "null"] }
+        paymentSchedule: { type: ["string", "null"] }
+        status: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    PaymentInput:
+      type: object
+      required: [clientName, tariff, revenue, paymentDate, managerId]
+      properties:
+        orderNumber: { type: integer }
+        clientName: { type: string }
+        telegram: { type: string }
+        tariff: { type: string }
+        revenue: { type: number }
+        netProfit: { type: number }
+        receivable: { type: number }
+        paymentMethod: { type: string }
+        paymentDate: { type: string }
+        managerId: { type: integer }
+        paymentSchedule: { type: string }
+        status: { type: string }
+
+    PaymentUpdate:
+      type: object
+      properties:
+        clientName: { type: string }
+        telegram: { type: string }
+        tariff: { type: string }
+        revenue: { type: number }
+        netProfit: { type: number }
+        receivable: { type: number }
+        paymentMethod: { type: string }
+        paymentDate: { type: string }
+        managerId: { type: integer }
+        paymentSchedule: { type: string }
+        status: { type: string }
+
+    DashboardStats:
+      type: object
+      required: [totalRevenue, totalNetProfit, totalDeals, conversionRate, averageCheck]
+      properties:
+        totalRevenue: { type: number }
+        totalNetProfit: { type: number }
+        totalDeals: { type: integer }
+        conversionRate: { type: number }
+        averageCheck: { type: number }
+        totalLeads: { type: integer }
+        minPlan: { type: number }
+        targetPlan: { type: number }
+        planProgress: { type: number }
+
+    CashFlowEntry:
+      type: object
+      required: [month, revenue, netProfit, deals]
+      properties:
+        month: { type: string }
+        revenue: { type: number }
+        netProfit: { type: number }
+        deals: { type: integer }
+
+    ManagerStats:
+      type: object
+      required: [managerId, managerName, revenue, netProfit, deals, minPlan, targetPlan]
+      properties:
+        managerId: { type: integer }
+        managerName: { type: string }
+        revenue: { type: number }
+        netProfit: { type: number }
+        deals: { type: integer }
+        minPlan: { type: number }
+        targetPlan: { type: number }
+        planProgress: { type: number }
+
+    Plan:
+      type: object
+      required: [id, managerId, month, minPlan, targetPlan, maxPlan]
+      properties:
+        id: { type: integer }
+        managerId: { type: integer }
+        managerName: { type: ["string", "null"] }
+        month: { type: string }
+        product: { type: ["string", "null"] }
+        minPlan: { type: number }
+        targetPlan: { type: number }
+        maxPlan: { type: number }
+        createdAt: { type: string }
+
+    PlanInput:
+      type: object
+      required: [managerId, month, minPlan, targetPlan, maxPlan]
+      properties:
+        managerId: { type: integer }
+        month: { type: string }
+        product: { type: string }
+        minPlan: { type: number }
+        targetPlan: { type: number }
+        maxPlan: { type: number }
+
+    PlanUpdate:
+      type: object
+      properties:
+        minPlan: { type: number }
+        targetPlan: { type: number }
+        maxPlan: { type: number }
+        product: { type: string }
+
+    Employee:
+      type: object
+      required: [id, name, role, username]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        role: { type: string }
+        username: { type: string }
+        salary: { type: ["number", "null"] }
+        baseBonus: { type: ["number", "null"] }
+        multiplier: { type: ["number", "null"] }
+        minPlan: { type: ["number", "null"] }
+        targetPlan: { type: ["number", "null"] }
+        maxPlan: { type: ["number", "null"] }
+        createdAt: { type: string }
+
+    EmployeeInput:
+      type: object
+      required: [name, role, username, password]
+      properties:
+        name: { type: string }
+        role: { type: string }
+        username: { type: string }
+        password: { type: string }
+        salary: { type: number }
+        baseBonus: { type: number }
+        multiplier: { type: number }
+        minPlan: { type: number }
+        targetPlan: { type: number }
+        maxPlan: { type: number }
+
+    EmployeeUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        role: { type: string }
+        username: { type: string }
+        password: { type: string }
+        salary: { type: number }
+        baseBonus: { type: number }
+        multiplier: { type: number }
+        minPlan: { type: number }
+        targetPlan: { type: number }
+        maxPlan: { type: number }
+
+    WorkspaceStats:
+      type: object
+      required: [managerId, managerName, openDeals, todayTasks, currentBonus, amountToTarget, currentMultiplier, netProfit, targetPlan, minPlan]
+      properties:
+        managerId: { type: integer }
+        managerName: { type: string }
+        openDeals: { type: integer }
+        todayTasks: { type: integer }
+        currentBonus: { type: number }
+        amountToTarget: { type: number }
+        currentMultiplier: { type: number }
+        netProfit: { type: number }
+        targetPlan: { type: number }
+        minPlan: { type: number }
+        planProgress: { type: number }
