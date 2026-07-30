@@ -38,9 +38,18 @@ async function getUser(userId: number) {
   return user;
 }
 
+function formatDate(value: unknown) {
+  return value instanceof Date ? value.toISOString() : value;
+}
+
 async function enrichLead(lead: any, users: any[]) {
   const manager = users.find(u => u.id === lead.managerId);
-  return { ...lead, managerName: manager?.name ?? null };
+  return {
+    ...lead,
+    managerName: manager?.name ?? null,
+    createdAt: formatDate(lead.createdAt),
+    updatedAt: formatDate(lead.updatedAt),
+  };
 }
 
 router.get("/leads", async (req, res): Promise<void> => {

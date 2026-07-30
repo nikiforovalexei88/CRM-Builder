@@ -6,18 +6,18 @@ import { LayoutDashboard, Users, CreditCard, CalendarDays, Briefcase, Network } 
 import { cn } from "@/lib/utils";
 
 const adminRoutes = [
-  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/leads", label: "Leads", icon: Network },
-  { path: "/payments", label: "Payments", icon: CreditCard },
-  { path: "/planning", label: "Planning", icon: CalendarDays },
-  { path: "/employees", label: "Employees", icon: Users },
-  { path: "/workspace", label: "Workspace", icon: Briefcase },
+  { path: "/dashboard", label: "Дашборд", icon: LayoutDashboard },
+  { path: "/leads", label: "Заявки", icon: Network },
+  { path: "/payments", label: "Оплаты", icon: CreditCard },
+  { path: "/planning", label: "Планы", icon: CalendarDays },
+  { path: "/employees", label: "Сотрудники", icon: Users },
+  { path: "/workspace", label: "Рабочий стол", icon: Briefcase },
 ];
 
 const managerRoutes = [
-  { path: "/workspace", label: "Workspace", icon: Briefcase },
-  { path: "/leads", label: "Leads", icon: Network },
-  { path: "/payments", label: "Payments", icon: CreditCard },
+  { path: "/workspace", label: "Рабочий стол", icon: Briefcase },
+  { path: "/leads", label: "Заявки", icon: Network },
+  { path: "/payments", label: "Оплаты", icon: CreditCard },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

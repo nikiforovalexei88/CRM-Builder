@@ -27,9 +27,17 @@ async function getUser(userId: number) {
   return user;
 }
 
-async function enrichPayment(payment: any, users: any[]) {
+function formatDate(value: unknown) {
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+function enrichPayment(payment: any, users: any[]) {
   const manager = users.find(u => u.id === payment.managerId);
-  return { ...payment, managerName: manager?.name ?? null };
+  return {
+    ...payment,
+    managerName: manager?.name ?? null,
+    createdAt: formatDate(payment.createdAt),
+  };
 }
 
 router.get("/payments", async (req, res): Promise<void> => {

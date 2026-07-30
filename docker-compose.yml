@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: crm-builder-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: crm_builder
+      POSTGRES_USER: crm_builder
+      POSTGRES_PASSWORD: crm_builder_password
+    ports:
+      - "55432:5432"
+    volumes:
+      - crm_builder_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crm_builder -d crm_builder"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  crm_builder_postgres_data:

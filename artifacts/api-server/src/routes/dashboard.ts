@@ -32,6 +32,7 @@ router.get("/dashboard/stats", async (req, res): Promise<void> => {
     : await db.select().from(paymentsTable);
 
   const leads = await db.select().from(leadsTable);
+  const users = await db.select().from(usersTable);
   const plans = await db.select().from(plansTable);
 
   const totalRevenue = payments.reduce((s, p) => s + (p.revenue ?? 0), 0);
@@ -41,10 +42,18 @@ router.get("/dashboard/stats", async (req, res): Promise<void> => {
   const conversionRate = totalLeads > 0 ? (totalDeals / totalLeads) * 100 : 0;
   const averageCheck = totalDeals > 0 ? totalRevenue / totalDeals : 0;
 
-  // Sum plans for the given month or all time
-  const monthPlans = month ? plans.filter(p => p.month === month) : plans;
-  const minPlan = monthPlans.reduce((s, p) => s + p.minPlan, 0);
-  const targetPlan = monthPlans.reduce((s, p) => s + p.targetPlan, 0);
+  const minPlan = month
+    ? users.reduce((sum, user) => {
+        const plan = plans.find(p => p.managerId === user.id && p.month === month);
+        return sum + (plan?.minPlan ?? user.minPlan ?? 0);
+      }, 0)
+    : plans.reduce((sum, plan) => sum + plan.minPlan, 0);
+  const targetPlan = month
+    ? users.reduce((sum, user) => {
+        const plan = plans.find(p => p.managerId === user.id && p.month === month);
+        return sum + (plan?.targetPlan ?? user.targetPlan ?? 0);
+      }, 0)
+    : plans.reduce((sum, plan) => sum + plan.targetPlan, 0);
   const planProgress = targetPlan > 0 ? (totalNetProfit / targetPlan) * 100 : 0;
 
   res.json(GetDashboardStatsResponse.parse({

@@ -37,11 +37,12 @@ function RootRedirect() {
 
 function Router() {
   const [location] = useLocation();
-  const isAuthRoute = location === "/login";
+  const isPublicRoute = location === "/" || location === "/login";
 
-  if (isAuthRoute) {
+  if (isPublicRoute) {
     return (
       <Switch>
+        <Route path="/" component={RootRedirect} />
         <Route path="/login" component={Login} />
       </Switch>
     );
@@ -50,7 +51,6 @@ function Router() {
   return (
     <AppShell>
       <Switch>
-        <Route path="/" component={RootRedirect} />
         <Route path="/dashboard"><ProtectedRoute component={Dashboard} adminOnly /></Route>
         <Route path="/leads"><ProtectedRoute component={Leads} /></Route>
         <Route path="/payments"><ProtectedRoute component={Payments} /></Route>

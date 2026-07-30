@@ -44,10 +44,12 @@ router.get("/workspace/my-stats", async (req, res): Promise<void> => {
   const minPlan = plans.length > 0 ? plans[0].minPlan : (user.minPlan ?? 1000000);
   const planProgress = targetPlan > 0 ? (netProfit / targetPlan) * 100 : 0;
 
-  // Bonus calculation
-  const multiplier = user.multiplier ?? 1;
+  // Bonus calculation: no bonus before minimum, base bonus after minimum,
+  // multiplied bonus after target.
+  const targetMultiplier = user.multiplier ?? 1;
   const baseBonus = user.baseBonus ?? 0;
-  const currentBonus = baseBonus * multiplier * (planProgress / 100);
+  const currentMultiplier = netProfit >= targetPlan ? targetMultiplier : netProfit >= minPlan ? 1 : 0;
+  const currentBonus = baseBonus * currentMultiplier;
   const amountToTarget = Math.max(0, targetPlan - netProfit);
 
   // Today tasks = leads in "in_progress" status
@@ -60,7 +62,7 @@ router.get("/workspace/my-stats", async (req, res): Promise<void> => {
     todayTasks,
     currentBonus,
     amountToTarget,
-    currentMultiplier: multiplier,
+    currentMultiplier,
     netProfit,
     targetPlan,
     minPlan,
