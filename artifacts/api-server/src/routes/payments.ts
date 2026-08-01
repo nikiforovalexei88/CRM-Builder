@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, paymentsTable, usersTable } from "@workspace/db";
-import { eq, and, ilike, SQL } from "drizzle-orm";
+import { eq, and, like, type SQL } from "@workspace/db";
 import {
   CreatePaymentBody,
   CreatePaymentResponse,
@@ -60,8 +60,8 @@ router.get("/payments", async (req, res): Promise<void> => {
   if (filters.tariff) conditions.push(eq(paymentsTable.tariff, filters.tariff));
   if (filters.paymentMethod) conditions.push(eq(paymentsTable.paymentMethod, filters.paymentMethod));
   if (filters.status) conditions.push(eq(paymentsTable.status, filters.status));
-  if (filters.search) conditions.push(ilike(paymentsTable.clientName, `%${filters.search}%`));
-  if (filters.month) conditions.push(ilike(paymentsTable.paymentDate, `${filters.month}%`));
+  if (filters.search) conditions.push(like(paymentsTable.clientName, `%${filters.search}%`));
+  if (filters.month) conditions.push(like(paymentsTable.paymentDate, `${filters.month}%`));
 
   const payments = conditions.length > 0
     ? await db.select().from(paymentsTable).where(and(...conditions)).orderBy(paymentsTable.paymentDate)

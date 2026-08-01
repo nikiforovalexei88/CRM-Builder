@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, leadsTable, usersTable, paymentsTable, activitiesTable } from "@workspace/db";
-import { eq, and, ilike, or, SQL } from "drizzle-orm";
+import { eq, and, like, or, type SQL } from "@workspace/db";
 import {
   CreateLeadBody,
   CreateLeadResponse,
@@ -75,16 +75,20 @@ router.get("/leads", async (req, res): Promise<void> => {
   if (filters.search) {
     conditions.push(
       or(
-        ilike(leadsTable.clientName, `%${filters.search}%`),
-        ilike(leadsTable.phone ?? leadsTable.clientName, `%${filters.search}%`),
-        ilike(leadsTable.telegram ?? leadsTable.clientName, `%${filters.search}%`),
+        like(leadsTable.clientName, `%${filters.search}%`),
+        like(leadsTable.phone ?? leadsTable.clientName, `%${filters.search}%`),
+        like(leadsTable.telegram ?? leadsTable.clientName, `%${filters.search}%`),
       )!
     );
   }
 
   if (filters.month) {
-    // filter by month from paymentDate or createdAt
-    conditions.push(ilike(leadsTable.paymentDate ?? leadsTable.status, `${filters.month}%`));
+    conditions.push(
+      or(
+        like(leadsTable.paymentDate, `${filters.month}%`),
+        like(leadsTable.createdAt, `${filters.month}%`),
+      )!,
+    );
   }
 
   const leads = conditions.length > 0
@@ -263,7 +267,7 @@ router.post("/leads/:id/notes", async (req, res): Promise<void> => {
     leadId: activity.leadId,
     content: activity.content,
     authorName: author?.name ?? null,
-    createdAt: activity.createdAt.toISOString(),
+    createdAt: activity.createdAt,
   }));
 });
 
@@ -284,7 +288,7 @@ router.get("/leads/:id/activities", async (req, res): Promise<void> => {
     leadId: a.leadId,
     content: a.content,
     authorName: a.authorId ? (users.find(u => u.id === a.authorId)?.name ?? null) : null,
-    createdAt: a.createdAt.toISOString(),
+    createdAt: a.createdAt,
   }));
 
   res.json(ListLeadActivitiesResponse.parse(enriched));

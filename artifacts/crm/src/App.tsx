@@ -13,6 +13,7 @@ import Payments from '@/pages/payments';
 import Workspace from '@/pages/workspace';
 import Planning from '@/pages/planning';
 import Employees from '@/pages/employees';
+import Chats from '@/pages/chats';
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ function Router() {
         <Route path="/dashboard"><ProtectedRoute component={Dashboard} adminOnly /></Route>
         <Route path="/leads"><ProtectedRoute component={Leads} /></Route>
         <Route path="/payments"><ProtectedRoute component={Payments} /></Route>
+        <Route path="/chats"><ProtectedRoute component={Chats} /></Route>
         <Route path="/workspace"><ProtectedRoute component={Workspace} /></Route>
         <Route path="/planning"><ProtectedRoute component={Planning} adminOnly /></Route>
         <Route path="/employees"><ProtectedRoute component={Employees} adminOnly /></Route>

@@ -2,12 +2,13 @@ import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, S
 import { Topbar } from "./Topbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Users, CreditCard, CalendarDays, Briefcase, Network } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, CalendarDays, Briefcase, Network, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const adminRoutes = [
   { path: "/dashboard", label: "Дашборд", icon: LayoutDashboard },
   { path: "/leads", label: "Заявки", icon: Network },
+  { path: "/chats", label: "Чаты", icon: MessageCircle },
   { path: "/payments", label: "Оплаты", icon: CreditCard },
   { path: "/planning", label: "Планы", icon: CalendarDays },
   { path: "/employees", label: "Сотрудники", icon: Users },
@@ -17,6 +18,7 @@ const adminRoutes = [
 const managerRoutes = [
   { path: "/workspace", label: "Рабочий стол", icon: Briefcase },
   { path: "/leads", label: "Заявки", icon: Network },
+  { path: "/chats", label: "Чаты", icon: MessageCircle },
   { path: "/payments", label: "Оплаты", icon: CreditCard },
 ];
 

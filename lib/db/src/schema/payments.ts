@@ -1,9 +1,10 @@
-import { pgTable, text, serial, timestamp, real, integer } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const paymentsTable = pgTable("payments", {
-  id: serial("id").primaryKey(),
+export const paymentsTable = sqliteTable("payments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   orderNumber: integer("order_number"),
   clientName: text("client_name").notNull(),
   telegram: text("telegram"),
@@ -16,8 +17,11 @@ export const paymentsTable = pgTable("payments", {
   managerId: integer("manager_id").notNull(),
   paymentSchedule: text("payment_schedule"),
   status: text("status").default("paid"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`)
+    .$onUpdate(() => new Date().toISOString()),
 });
 
 export const insertPaymentSchema = createInsertSchema(paymentsTable).omit({ id: true, createdAt: true, updatedAt: true });

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, plansTable, usersTable } from "@workspace/db";
-import { eq, and, SQL } from "drizzle-orm";
+import { eq, and, type SQL } from "@workspace/db";
 import {
   CreatePlanBody,
   CreatePlanResponse,

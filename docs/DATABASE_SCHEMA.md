@@ -1,367 +1,358 @@
-# CRM-Builder: обзор проекта и схема базы данных
+# CRM Builder: схема SQLite-базы
 
-## Что есть в проекте сейчас
+Файл базы для локального запуска:
 
-Проект уже скачан как `pnpm`-монорепозиторий.
+```text
+data/crm.sqlite
+```
 
-Основные части:
+Текущая CRM работает с пятью основными сущностями: сотрудники, заявки, оплаты, планы и история действий по заявкам. Для локальной разработки выбрана SQLite-база: ее не нужно поднимать через Docker, она хранится одним файлом и подходит для текущего объема данных из Excel.
 
-| Путь | Назначение |
-| --- | --- |
-| `artifacts/crm` | React/Vite фронтенд CRM. Страницы: логин, дашборд, лиды, платежи, рабочее место менеджера, планирование, сотрудники. |
-| `artifacts/api-server` | Express API. Авторизация через сессию, CRUD для лидов, платежей, планов и сотрудников, отчеты для дашборда. |
-| `lib/db` | PostgreSQL + Drizzle ORM. Здесь текущая схема таблиц. |
-| `lib/api-spec` | OpenAPI-контракт API. Из него генерируются клиентские хуки и Zod-схемы. |
-| `lib/api-zod` | Сгенерированные Zod-схемы для проверки входных и выходных данных API. |
-| `lib/api-client-react` | Сгенерированный React API-клиент. |
-| `attached_assets` | Исходные материалы и импортированные файлы, включая Excel с запуском за январь-февраль. |
-
-Текущая база уже содержит 5 таблиц:
-
-| Таблица | Роль |
-| --- | --- |
-| `users` | Сотрудники, роли, логины, парольные хэши, зарплата и параметры бонусов. |
-| `leads` | Лиды/сделки, клиентские контакты, статус, продукт, тариф, сумма, прибыль, менеджер. |
-| `payments` | Платежи и выручка по клиентам/менеджерам. |
-| `plans` | Месячные планы менеджеров. |
-| `activities` | История заметок и действий по лидам. |
-
-## Что стоит улучшить в модели
-
-Текущая схема хороша для первого прототипа, но для рабочей CRM ее лучше нормализовать:
-
-- Клиента стоит вынести из `leads` и `payments` в отдельную таблицу `customers`.
-- Продукты, тарифы, источники, статусы и методы оплаты лучше хранить как справочники, а не произвольные строки.
-- Денежные значения лучше хранить как `numeric(14,2)`, а не `real`, чтобы не ловить ошибки округления.
-- `payment_date` и `month` лучше хранить как `date`, а не `text`.
-- В таблицах должны быть внешние ключи, индексы для фильтров и защита от удаления связанных данных.
-- Автоматически созданный платеж из лида должен ссылаться на исходный `lead_id`.
-
-## Целевая ER-схема
+## Наглядная схема
 
 ```mermaid
 erDiagram
-    USERS ||--o{ LEADS : manages
-    USERS ||--o{ PAYMENTS : owns
-    USERS ||--o{ MONTHLY_PLANS : has
-    USERS ||--o{ LEAD_ACTIVITIES : authors
+    USERS ||--o{ LEADS : "ведет"
+    USERS ||--o{ PAYMENTS : "получает оплаты"
+    USERS ||--o{ PLANS : "имеет планы"
+    USERS ||--o{ ACTIVITIES : "пишет заметки"
+    USERS ||--o{ TELEGRAM_CHATS : "ведет диалоги"
+    USERS ||--o{ INVOICES : "выставляет счета"
+    LEADS ||--o{ ACTIVITIES : "имеет историю"
+    LEADS ||--o{ TELEGRAM_CHATS : "связан с чатами"
+    LEADS ||--o{ INVOICES : "имеет счета"
+    TELEGRAM_CHATS ||--o{ TELEGRAM_MESSAGES : "имеет сообщения"
+    TELEGRAM_CHATS ||--o{ INVOICES : "получает счета"
+    GOOGLE_SHEETS_SYNC_STATE ||--|| LEADS : "контролирует импорт"
 
-    CUSTOMERS ||--o{ LEADS : has
-    CUSTOMERS ||--o{ PAYMENTS : pays
+    USERS {
+      integer id PK
+      text name
+      text role
+      text username UK
+      text password_hash
+      real salary
+      real base_bonus
+      real multiplier
+      real min_plan
+      real target_plan
+      real max_plan
+      text created_at
+      text updated_at
+    }
 
-    LEAD_SOURCES ||--o{ CUSTOMERS : source
-    LEAD_STATUSES ||--o{ LEADS : status
+    LEADS {
+      integer id PK
+      text client_name
+      text phone
+      text telegram
+      text email
+      text product
+      text tariff
+      real price
+      real net_profit
+      text source
+      text external_id UK
+      text income
+      text status
+      text notes
+      integer manager_id FK
+      text payment_date
+      text payment_type
+      text created_at
+      text updated_at
+    }
 
-    PRODUCTS ||--o{ TARIFFS : contains
-    PRODUCTS ||--o{ LEADS : requested
-    PRODUCTS ||--o{ MONTHLY_PLANS : planned
-    TARIFFS ||--o{ LEADS : selected
-    TARIFFS ||--o{ PAYMENTS : sold
+    PAYMENTS {
+      integer id PK
+      integer order_number
+      text client_name
+      text telegram
+      text tariff
+      real revenue
+      real net_profit
+      real receivable
+      text payment_method
+      text payment_date
+      integer manager_id FK
+      text payment_schedule
+      text status
+      text created_at
+      text updated_at
+    }
 
-    LEADS ||--o{ LEAD_ACTIVITIES : history
-    LEADS ||--o{ PAYMENTS : converted_to
+    PLANS {
+      integer id PK
+      integer manager_id FK
+      text month
+      text product
+      real min_plan
+      real target_plan
+      real max_plan
+      text created_at
+      text updated_at
+    }
 
-    PAYMENT_METHODS ||--o{ PAYMENTS : method
-    PAYMENT_STATUSES ||--o{ PAYMENTS : status
+    ACTIVITIES {
+      integer id PK
+      integer lead_id FK
+      text content
+      integer author_id FK
+      text created_at
+    }
+
+    GOOGLE_SHEETS_SYNC_STATE {
+      integer id PK
+      text last_sync_at
+      integer last_imported_count
+      text updated_at
+    }
+
+    TELEGRAM_CHATS {
+      integer id PK
+      integer lead_id FK
+      integer manager_id FK
+      text telegram_chat_id UK
+      text telegram_username
+      text client_name
+      text status
+      text last_message_text
+      text last_message_at
+      text created_at
+      text updated_at
+    }
+
+    TELEGRAM_MESSAGES {
+      integer id PK
+      integer chat_id FK
+      integer lead_id FK
+      text direction
+      text sender_type
+      integer sender_id
+      integer telegram_message_id
+      text text
+      text attachment_name
+      text attachment_type
+      text attachment_path
+      text telegram_file_id
+      text status
+      text created_at
+    }
+
+    INVOICES {
+      integer id PK
+      integer lead_id FK
+      integer chat_id FK
+      integer manager_id FK
+      text invoice_number UK
+      text client_name
+      real amount
+      text description
+      text status
+      text pdf_path
+      text sent_at
+      text created_at
+      text updated_at
+    }
 ```
 
 ## Таблицы
 
 ### `users`
 
-Сотрудники CRM: администраторы и менеджеры.
+Сотрудники и права доступа.
 
 | Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `serial primary key` | Идентификатор пользователя. |
-| `name` | `text not null` | Имя сотрудника. |
-| `role` | `text not null` | `admin` или `manager`. |
-| `username` | `text not null unique` | Логин. |
-| `password_hash` | `text not null` | Хэш пароля. |
-| `salary` | `numeric(14,2)` | Оклад. |
-| `base_bonus` | `numeric(14,2)` | Базовый бонус. |
-| `bonus_multiplier` | `numeric(8,3)` | Множитель бонуса. |
-| `default_min_plan` | `numeric(14,2)` | План минимум по умолчанию. |
-| `default_target_plan` | `numeric(14,2)` | Целевой план по умолчанию. |
-| `default_max_plan` | `numeric(14,2)` | Максимальный план по умолчанию. |
-| `is_active` | `boolean not null default true` | Можно ли входить в систему. |
-| `created_at` | `timestamptz not null default now()` | Дата создания. |
-| `updated_at` | `timestamptz not null default now()` | Дата обновления. |
-
-Индексы:
-
-- `unique(username)`
-- `index(role)`
-- `index(is_active)`
-
-### `customers`
-
-Единая карточка клиента. Один клиент может иметь несколько лидов и платежей.
-
-| Поле | Тип | Назначение |
-| --- | --- | --- |
-| `id` | `serial primary key` | Идентификатор клиента. |
-| `full_name` | `text not null` | Имя клиента. |
-| `phone` | `text` | Телефон. |
-| `telegram` | `text` | Telegram. |
-| `email` | `text` | Email. |
-| `source_id` | `integer references lead_sources(id)` | Источник привлечения. |
-| `income_segment` | `text` | Сегмент дохода, если нужен в продажах. |
-| `notes` | `text` | Общие заметки по клиенту. |
-| `created_at` | `timestamptz not null default now()` | Дата создания. |
-| `updated_at` | `timestamptz not null default now()` | Дата обновления. |
-
-Индексы:
-
-- `index(phone)`
-- `index(telegram)`
-- `index(email)`
-- `index(source_id)`
-
-### `lead_sources`
-
-Справочник источников лидов.
-
-| Поле | Тип | Назначение |
-| --- | --- | --- |
-| `id` | `serial primary key` | Идентификатор источника. |
-| `name` | `text not null unique` | Название: реклама, рекомендации, блог, вебинар и т.д. |
-| `is_active` | `boolean not null default true` | Доступен ли источник для выбора. |
-
-### `products`
-
-Справочник продуктов.
-
-| Поле | Тип | Назначение |
-| --- | --- | --- |
-| `id` | `serial primary key` | Идентификатор продукта. |
-| `name` | `text not null unique` | Название продукта. |
-| `description` | `text` | Описание. |
-| `is_active` | `boolean not null default true` | Доступен ли продукт. |
-| `created_at` | `timestamptz not null default now()` | Дата создания. |
-
-### `tariffs`
-
-Тарифы внутри продуктов.
-
-| Поле | Тип | Назначение |
-| --- | --- | --- |
-| `id` | `serial primary key` | Идентификатор тарифа. |
-| `product_id` | `integer not null references products(id)` | Продукт. |
-| `name` | `text not null` | Название тарифа. |
-| `default_price` | `numeric(14,2)` | Базовая цена. |
-| `default_net_profit` | `numeric(14,2)` | Ожидаемая чистая прибыль. |
-| `is_active` | `boolean not null default true` | Доступен ли тариф. |
-
-Ограничения:
-
-- `unique(product_id, name)`
-
-### `lead_statuses`
-
-Справочник статусов воронки.
-
-| Поле | Тип | Назначение |
-| --- | --- | --- |
-| `code` | `text primary key` | Код статуса: `new`, `in_progress`, `paid`, `lost`. |
-| `name` | `text not null` | Человекочитаемое название. |
-| `sort_order` | `integer not null` | Порядок в канбане/воронке. |
-| `is_won` | `boolean not null default false` | Успешный финальный статус. |
-| `is_lost` | `boolean not null default false` | Проигранный финальный статус. |
+| `id` | `integer primary key autoincrement` | ID сотрудника |
+| `name` | `text not null` | Имя сотрудника |
+| `role` | `text not null default 'manager'` | Роль: `admin` или `manager` |
+| `username` | `text not null unique` | Логин |
+| `password_hash` | `text not null` | Хеш пароля |
+| `salary` | `real` | Оклад |
+| `base_bonus` | `real` | Базовая премия |
+| `multiplier` | `real` | Коэффициент премии после целевого плана |
+| `min_plan` | `real` | План-минимум по умолчанию |
+| `target_plan` | `real` | Целевой план по умолчанию |
+| `max_plan` | `real` | Максимальный план по умолчанию |
+| `created_at` | `text` | Дата создания записи |
+| `updated_at` | `text` | Дата обновления записи |
 
 ### `leads`
 
-Сделки/лиды в воронке продаж.
+Заявки для Kanban-доски.
 
 | Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `serial primary key` | Идентификатор лида. |
-| `customer_id` | `integer not null references customers(id)` | Клиент. |
-| `manager_id` | `integer not null references users(id)` | Ответственный менеджер. |
-| `product_id` | `integer references products(id)` | Интересующий продукт. |
-| `tariff_id` | `integer references tariffs(id)` | Тариф. |
-| `status_code` | `text not null references lead_statuses(code)` | Статус воронки. |
-| `expected_revenue` | `numeric(14,2)` | Ожидаемая выручка. |
-| `expected_net_profit` | `numeric(14,2)` | Ожидаемая чистая прибыль. |
-| `expected_payment_date` | `date` | Ожидаемая дата оплаты. |
-| `payment_type` | `text` | Планируемый тип/вариант оплаты. |
-| `notes` | `text` | Заметки по сделке. |
-| `created_at` | `timestamptz not null default now()` | Дата создания. |
-| `updated_at` | `timestamptz not null default now()` | Дата обновления. |
-| `closed_at` | `timestamptz` | Дата закрытия сделки. |
-
-Индексы:
-
-- `index(manager_id, status_code)`
-- `index(customer_id)`
-- `index(product_id)`
-- `index(tariff_id)`
-- `index(expected_payment_date)`
-- `index(created_at)`
-
-### `lead_activities`
-
-История действий по лиду: заметки, смены статуса, звонки, задачи.
-
-| Поле | Тип | Назначение |
-| --- | --- | --- |
-| `id` | `serial primary key` | Идентификатор активности. |
-| `lead_id` | `integer not null references leads(id) on delete cascade` | Лид. |
-| `author_id` | `integer references users(id)` | Автор. |
-| `type` | `text not null default 'note'` | `note`, `status_change`, `call`, `message`, `task`. |
-| `content` | `text not null` | Текст события. |
-| `from_status_code` | `text references lead_statuses(code)` | Старый статус. |
-| `to_status_code` | `text references lead_statuses(code)` | Новый статус. |
-| `due_at` | `timestamptz` | Срок задачи. |
-| `completed_at` | `timestamptz` | Дата выполнения задачи. |
-| `created_at` | `timestamptz not null default now()` | Дата создания. |
-
-Индексы:
-
-- `index(lead_id, created_at)`
-- `index(author_id)`
-- `index(due_at)`
-
-### `payment_methods`
-
-Справочник способов оплаты.
-
-| Поле | Тип | Назначение |
-| --- | --- | --- |
-| `id` | `serial primary key` | Идентификатор способа оплаты. |
-| `name` | `text not null unique` | Название: карта, перевод, рассрочка, счет и т.д. |
-| `is_active` | `boolean not null default true` | Доступен ли способ. |
-
-### `payment_statuses`
-
-Справочник статусов платежей.
-
-| Поле | Тип | Назначение |
-| --- | --- | --- |
-| `code` | `text primary key` | Код: `pending`, `paid`, `partial`, `refunded`, `cancelled`. |
-| `name` | `text not null` | Название статуса. |
-| `sort_order` | `integer not null default 0` | Порядок отображения. |
+| `id` | `integer primary key autoincrement` | ID заявки |
+| `client_name` | `text not null` | Имя клиента |
+| `phone` | `text` | Телефон |
+| `telegram` | `text` | Telegram или другой контакт |
+| `email` | `text` | Email |
+| `product` | `text` | Продукт |
+| `tariff` | `text` | Тариф |
+| `price` | `real` | Сумма тарифа или ожидаемая выручка |
+| `net_profit` | `real` | Ожидаемая или фактическая чистая прибыль |
+| `source` | `text` | Источник данных, например Excel или Google Sheets |
+| `external_id` | `text unique` | Внешний ключ импорта, чтобы не задваивать заявки из Google Sheets |
+| `income` | `text` | Доход/сегмент клиента из Excel |
+| `status` | `text not null default 'new'` | Статус Kanban: `new`, `in_progress`, `proposal_sent`, `waiting_decision`, `paid`, `lost` |
+| `notes` | `text` | Запрос, комментарии и исходный статус из Excel |
+| `manager_id` | `integer not null` | Ответственный сотрудник |
+| `payment_date` | `text` | Дата заявки или оплаты в формате `YYYY-MM-DD` |
+| `payment_type` | `text` | Способ/тип оплаты |
+| `created_at` | `text` | Дата создания записи |
+| `updated_at` | `text` | Дата обновления записи |
 
 ### `payments`
 
-Фактические платежи. Используются для выручки, чистой прибыли, план-факта и отчетов.
+Оплаты и финансовая статистика.
 
 | Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `serial primary key` | Идентификатор платежа. |
-| `lead_id` | `integer references leads(id)` | Сделка, если платеж родился из лида. |
-| `customer_id` | `integer not null references customers(id)` | Клиент. |
-| `manager_id` | `integer not null references users(id)` | Ответственный менеджер. |
-| `tariff_id` | `integer references tariffs(id)` | Проданный тариф. |
-| `order_number` | `integer` | Номер заказа. |
-| `revenue` | `numeric(14,2) not null` | Выручка. |
-| `net_profit` | `numeric(14,2)` | Чистая прибыль. |
-| `receivable` | `numeric(14,2)` | Дебиторка/остаток к получению. |
-| `payment_method_id` | `integer references payment_methods(id)` | Способ оплаты. |
-| `paid_at` | `date not null` | Дата оплаты. |
-| `payment_schedule` | `text` | График платежей, если нужен в свободной форме. |
-| `status_code` | `text not null references payment_statuses(code)` | Статус платежа. |
-| `created_at` | `timestamptz not null default now()` | Дата создания. |
-| `updated_at` | `timestamptz not null default now()` | Дата обновления. |
+| `id` | `integer primary key autoincrement` | ID оплаты |
+| `order_number` | `integer` | Номер заказа из Excel |
+| `client_name` | `text not null` | Клиент |
+| `telegram` | `text` | Контакт |
+| `tariff` | `text not null` | Тариф |
+| `revenue` | `real not null` | Выручка |
+| `net_profit` | `real` | Чистая прибыль |
+| `receivable` | `real` | Дебиторка |
+| `payment_method` | `text` | Способ оплаты |
+| `payment_date` | `text not null` | Дата оплаты `YYYY-MM-DD` |
+| `manager_id` | `integer not null` | Ответственный сотрудник |
+| `payment_schedule` | `text` | График платежей или отметка импорта |
+| `status` | `text default 'paid'` | Статус оплаты |
+| `created_at` | `text` | Дата создания записи |
+| `updated_at` | `text` | Дата обновления записи |
 
-Индексы:
+### `plans`
 
-- `index(manager_id, paid_at)`
-- `index(customer_id)`
-- `index(lead_id)`
-- `index(tariff_id)`
-- `index(status_code)`
-- `index(paid_at)`
-
-### `monthly_plans`
-
-Планы продаж по менеджерам, месяцам и опционально продуктам.
+Планы по сотрудникам и месяцам.
 
 | Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `serial primary key` | Идентификатор плана. |
-| `manager_id` | `integer not null references users(id)` | Менеджер. |
-| `month` | `date not null` | Первый день месяца, например `2026-07-01`. |
-| `product_id` | `integer references products(id)` | Продукт, если план продуктовый. |
-| `min_plan` | `numeric(14,2) not null` | Минимальный план. |
-| `target_plan` | `numeric(14,2) not null` | Целевой план. |
-| `max_plan` | `numeric(14,2) not null` | Максимальный план. |
-| `created_at` | `timestamptz not null default now()` | Дата создания. |
-| `updated_at` | `timestamptz not null default now()` | Дата обновления. |
+| `id` | `integer primary key autoincrement` | ID плана |
+| `manager_id` | `integer not null` | Сотрудник |
+| `month` | `text not null` | Месяц в формате `YYYY-MM` |
+| `product` | `text` | Продукт или источник плана |
+| `min_plan` | `real not null` | План-минимум |
+| `target_plan` | `real not null` | Целевой план |
+| `max_plan` | `real not null` | Максимальный план |
+| `created_at` | `text` | Дата создания записи |
+| `updated_at` | `text` | Дата обновления записи |
 
-Ограничения:
+### `activities`
 
-- `unique(manager_id, month, product_id)`
-
-Индексы:
-
-- `index(month)`
-- `index(manager_id, month)`
-
-### `audit_log`
-
-Технический журнал важных изменений.
+История заметок и действий по заявкам.
 
 | Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `bigserial primary key` | Идентификатор события. |
-| `actor_id` | `integer references users(id)` | Кто сделал изменение. |
-| `entity_type` | `text not null` | Тип сущности: `lead`, `payment`, `user`. |
-| `entity_id` | `integer not null` | ID сущности. |
-| `action` | `text not null` | Действие: `create`, `update`, `delete`, `login`. |
-| `before` | `jsonb` | Состояние до изменения. |
-| `after` | `jsonb` | Состояние после изменения. |
-| `created_at` | `timestamptz not null default now()` | Дата события. |
+| `id` | `integer primary key autoincrement` | ID действия |
+| `lead_id` | `integer not null` | Заявка |
+| `content` | `text not null` | Текст заметки |
+| `author_id` | `integer` | Автор |
+| `created_at` | `text` | Дата создания записи |
 
-Индексы:
+### `google_sheets_sync_state`
 
-- `index(entity_type, entity_id)`
-- `index(actor_id, created_at)`
+Состояние автоматической загрузки заявок из опубликованной Google-таблицы.
 
-## Представления для отчетов
+| Поле | Тип | Назначение |
+| --- | --- | --- |
+| `id` | `integer primary key` | Единственная строка состояния |
+| `last_sync_at` | `text` | Последняя попытка синхронизации |
+| `last_imported_count` | `integer` | Сколько новых заявок добавлено в последний запуск |
+| `updated_at` | `text` | Дата обновления состояния |
 
-### `vw_manager_monthly_stats`
+### `telegram_chats`
 
-Агрегирует факт по менеджерам и месяцам:
+Диалоги CRM с клиентами через Telegram-бота.
 
-| Поле | Источник |
+| Поле | Тип | Назначение |
+| --- | --- | --- |
+| `id` | `integer primary key autoincrement` | ID чата |
+| `lead_id` | `integer` | Связанная заявка |
+| `manager_id` | `integer` | Ответственный менеджер |
+| `telegram_chat_id` | `text unique` | ID диалога Telegram, появляется после `/start` от клиента |
+| `telegram_username` | `text` | Username клиента без `@` |
+| `client_name` | `text not null` | Имя клиента |
+| `status` | `text` | `pending` или `active` |
+| `last_message_text` | `text` | Последнее сообщение для списка чатов |
+| `last_message_at` | `text` | Время последнего сообщения |
+| `created_at` | `text` | Дата создания |
+| `updated_at` | `text` | Дата обновления |
+
+### `telegram_messages`
+
+Единая история входящих и исходящих сообщений.
+
+| Поле | Тип | Назначение |
+| --- | --- | --- |
+| `id` | `integer primary key autoincrement` | ID сообщения |
+| `chat_id` | `integer not null` | Чат |
+| `lead_id` | `integer` | Связанная заявка |
+| `direction` | `text not null` | `incoming` или `outgoing` |
+| `sender_type` | `text not null` | `client`, `manager`, `system` |
+| `sender_id` | `integer` | ID менеджера для исходящих |
+| `telegram_message_id` | `integer` | ID сообщения в Telegram |
+| `text` | `text` | Текст или подпись |
+| `attachment_name` | `text` | Имя файла |
+| `attachment_type` | `text` | MIME-тип файла |
+| `attachment_path` | `text` | Локальный путь к отправленному файлу |
+| `telegram_file_id` | `text` | ID файла Telegram |
+| `status` | `text` | Статус обработки |
+| `created_at` | `text` | Дата сообщения |
+
+### `invoices`
+
+PDF-счета, сохраненные в карточке клиента.
+
+| Поле | Тип | Назначение |
+| --- | --- | --- |
+| `id` | `integer primary key autoincrement` | ID счета |
+| `lead_id` | `integer not null` | Заявка клиента |
+| `chat_id` | `integer` | Telegram-чат для отправки |
+| `manager_id` | `integer not null` | Менеджер, создавший счет |
+| `invoice_number` | `text not null unique` | Номер счета |
+| `client_name` | `text not null` | Клиент |
+| `amount` | `real not null` | Сумма |
+| `description` | `text not null` | Описание услуги |
+| `status` | `text not null` | `saved`, `sent`, `paid`, `cancelled` |
+| `pdf_path` | `text` | Локальный путь к PDF |
+| `sent_at` | `text` | Дата отправки в Telegram |
+| `created_at` | `text` | Дата создания |
+| `updated_at` | `text` | Дата обновления |
+
+## Индексы
+
+| Индекс | Для чего нужен |
 | --- | --- |
-| `manager_id` | `payments.manager_id` |
-| `month` | `date_trunc('month', payments.paid_at)` |
-| `revenue` | `sum(payments.revenue)` |
-| `net_profit` | `sum(payments.net_profit)` |
-| `deals` | `count(payments.id)` |
-| `average_check` | `avg(payments.revenue)` |
+| `idx_users_role` | Быстрый фильтр сотрудников по роли |
+| `idx_leads_manager_status` | Kanban и права менеджера |
+| `idx_leads_tariff` | Фильтр заявок по тарифу |
+| `idx_leads_external_id` | Защита от дублей при импорте из Google Sheets |
+| `idx_leads_payment_date` | Фильтр заявок по месяцу |
+| `idx_payments_manager_date` | Отчеты и оплаты по сотруднику/месяцу |
+| `idx_payments_tariff` | Фильтр оплат по тарифу |
+| `idx_payments_method` | Фильтр оплат по способу оплаты |
+| `idx_plans_manager_month` | План-факт по сотруднику и месяцу |
+| `idx_activities_lead` | История конкретной заявки |
+| `idx_telegram_chats_lead` | Переход из заявки в чат |
+| `idx_telegram_chats_manager` | Фильтрация чатов менеджера |
+| `idx_telegram_messages_chat` | История сообщений в чате |
+| `idx_invoices_lead` | Список счетов в карточке заявки |
+| `idx_invoices_status` | Фильтр счетов по статусу |
 
-### `vw_lead_conversion`
+## Почему схема такая
 
-Считает конверсию лидов в оплату:
+- `users` хранит роли, логины, оклады и правила премий. Это нужно для руководителя и менеджеров.
+- `leads` обслуживает Kanban-доску и рабочий стол менеджера.
+- `google_sheets_sync_state` хранит состояние фоновой синхронизации с Google Sheets.
+- `telegram_chats` и `telegram_messages` дают единый диалог с клиентом через Telegram-бота.
+- `invoices` хранит PDF-счета, которые можно скачать, сохранить в карточке и отправить клиенту.
+- `payments` дает таблицу оплат, карточки выручки/прибыли и графики дашборда.
+- `plans` позволяет менять планы от месяца к месяцу.
+- `activities` оставляет место для истории контактов, заметок и действий по заявке.
 
-| Поле | Источник |
-| --- | --- |
-| `month` | `date_trunc('month', leads.created_at)` |
-| `manager_id` | `leads.manager_id` |
-| `total_leads` | `count(leads.id)` |
-| `paid_leads` | `count(*) filter where lead_statuses.is_won` |
-| `conversion_rate` | `paid_leads / total_leads * 100` |
-
-## Минимальный путь миграции
-
-1. Сначала добавить внешние ключи к текущим таблицам: `manager_id -> users.id`, `lead_id -> leads.id`, `author_id -> users.id`.
-2. Перевести денежные поля `price`, `net_profit`, `revenue`, `receivable`, `salary`, планы и бонусы с `real` на `numeric(14,2)`.
-3. Перевести `payment_date` и `plans.month` из `text` в `date`.
-4. Создать справочники `lead_statuses`, `products`, `tariffs`, `payment_methods`, `payment_statuses`.
-5. Вынести повторяющиеся данные клиента из `leads` и `payments` в `customers`.
-6. Добавить `lead_id` в `payments`, чтобы оплата была связана с исходной сделкой.
-7. Добавить индексы под фильтры, которые уже есть в API: менеджер, статус, тариф, месяц, поиск.
-
-## Почему такая база подходит проекту
-
-Эта схема закрывает текущие страницы CRM и оставляет запас на развитие:
-
-- `dashboard` получает быстрые и точные KPI из `payments`, `monthly_plans` и отчетных представлений.
-- `leads` получает нормальную воронку, историю действий и связь с клиентом.
-- `payments` становится источником финансовой правды, а не копией строк из лида.
-- `planning` работает по менеджерам, месяцам и продуктам.
-- `employees` остается простой таблицей пользователей, но с готовностью к расширению ролей и прав.
-- `workspace` менеджера может показывать открытые сделки, задачи, бонус и прогресс к плану без тяжелой логики на фронтенде.
+В SQLite денежные поля сейчас хранятся как `real`, потому что текущий код уже работает с числами JavaScript. Для будущей промышленной версии можно перейти на хранение денег в копейках как `integer`, чтобы полностью исключить ошибки округления.

@@ -5,6 +5,9 @@
   "scripts": {
     "preinstall": "node -e \"const fs=require('fs'); for (const file of ['package-lock.json','yarn.lock']) fs.rmSync(file,{force:true}); if (!process.env.npm_config_user_agent?.startsWith('pnpm/')) { console.error('Use pnpm instead'); process.exit(1); }\"",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "local:start": "node scripts/start-local.cjs",
+    "local:status": "node scripts/status-local.cjs",
+    "local:stop": "node scripts/stop-local.cjs",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },

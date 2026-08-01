@@ -1,16 +1,25 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
 
-const { Pool } = pg;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const defaultDbPath = path.resolve(__dirname, "..", "..", "..", "data", "crm.sqlite");
+const sqliteFile = process.env.SQLITE_FILE ?? defaultDbPath;
+const sqliteUrl = process.env.SQLITE_URL ?? `file:${sqliteFile}`;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+if (!process.env.SQLITE_URL) {
+  fs.mkdirSync(path.dirname(sqliteFile), { recursive: true });
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
+export const client = createClient({ url: sqliteUrl });
+export const db = drizzle(client, { schema });
 
+export async function closeDb() {
+  client.close();
+}
+
+export { and, eq, inArray, like, ne, or, sql, type SQL } from "drizzle-orm";
 export * from "./schema";

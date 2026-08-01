@@ -1,13 +1,12 @@
+import path from "node:path";
 import { defineConfig } from "drizzle-kit";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
-}
+const sqliteFile = process.env.SQLITE_FILE ?? path.resolve(import.meta.dirname, "..", "..", "data", "crm.sqlite");
 
 export default defineConfig({
   schema: "./src/schema/index.ts",
-  dialect: "postgresql",
+  dialect: "sqlite",
   dbCredentials: {
-    url: process.env.DATABASE_URL,
+    url: sqliteFile,
   },
 });

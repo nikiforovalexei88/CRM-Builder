@@ -32,10 +32,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 
 const TARIFFS = [
-  { id: "сам", label: "Сам" },
-  { id: "куратор", label: "Куратор" },
-  { id: "вип", label: "VIP" },
-  { id: "1 конс", label: "1 конс" },
+  { id: "куратор", label: "Обучение с куратором" },
+  { id: "сам", label: "Самостоятельное обучение" },
+  { id: "вип", label: "Обучение с VIP сопровождением от автора курса" },
+  { id: "1 конс", label: "Часовая консультация" },
 ];
 
 const PAYMENT_METHODS = [

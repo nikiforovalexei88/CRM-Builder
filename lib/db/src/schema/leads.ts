@@ -1,9 +1,10 @@
-import { pgTable, text, serial, timestamp, real, integer } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const leadsTable = pgTable("leads", {
-  id: serial("id").primaryKey(),
+export const leadsTable = sqliteTable("leads", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   clientName: text("client_name").notNull(),
   phone: text("phone"),
   telegram: text("telegram"),
@@ -13,14 +14,18 @@ export const leadsTable = pgTable("leads", {
   price: real("price"),
   netProfit: real("net_profit"),
   source: text("source"),
+  externalId: text("external_id"),
   income: text("income"),
   status: text("status").notNull().default("new"),
   notes: text("notes"),
   managerId: integer("manager_id").notNull(),
   paymentDate: text("payment_date"),
   paymentType: text("payment_type"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`)
+    .$onUpdate(() => new Date().toISOString()),
 });
 
 export const insertLeadSchema = createInsertSchema(leadsTable).omit({ id: true, createdAt: true, updatedAt: true });

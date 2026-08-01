@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, paymentsTable, leadsTable, usersTable, plansTable } from "@workspace/db";
-import { eq, ilike, and, SQL } from "drizzle-orm";
+import { eq, like, and, type SQL } from "@workspace/db";
 import {
   GetDashboardStatsResponse,
   GetDashboardStatsQueryParams,
@@ -25,7 +25,7 @@ router.get("/dashboard/stats", async (req, res): Promise<void> => {
   const month = params.success ? params.data.month : undefined;
 
   const conditions: SQL[] = [];
-  if (month) conditions.push(ilike(paymentsTable.paymentDate, `${month}%`));
+  if (month) conditions.push(like(paymentsTable.paymentDate, `${month}%`));
 
   const payments = conditions.length > 0
     ? await db.select().from(paymentsTable).where(and(...conditions))
@@ -103,7 +103,7 @@ router.get("/dashboard/manager-comparison", async (req, res): Promise<void> => {
   const managers = users.filter(u => u.role !== "admin" || true); // include all
 
   const conditions: SQL[] = [];
-  if (month) conditions.push(ilike(paymentsTable.paymentDate, `${month}%`));
+  if (month) conditions.push(like(paymentsTable.paymentDate, `${month}%`));
 
   const payments = conditions.length > 0
     ? await db.select().from(paymentsTable).where(and(...conditions))

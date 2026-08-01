@@ -4,6 +4,9 @@ import pinoHttp from "pino-http";
 import session from "express-session";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { startGoogleSheetsAutoSync } from "./services/googleSheetsSync";
+import { startTelegramPolling } from "./services/telegramChats";
+import { ensureInvoiceSchema } from "./services/invoices";
 
 if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET environment variable is required");
@@ -51,9 +54,13 @@ app.use(
   }),
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+startGoogleSheetsAutoSync();
+startTelegramPolling();
+void ensureInvoiceSchema();
 
 export default app;

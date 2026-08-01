@@ -12,7 +12,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Edit2, Filter, MessageSquare, Phone, Plus, RotateCcw, Search, Send, Trash2 } from "lucide-react";
+import { Download, Edit2, FileText, Filter, MessageSquare, Phone, Plus, RefreshCw, RotateCcw, Search, Send, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle as ModalTitle } from "@/components/ui/dialog";
@@ -32,10 +32,10 @@ const COLUMNS = [
 ];
 
 const TARIFFS = [
-  { id: "сам", label: "Сам", price: 34_990, color: "bg-slate-100 text-slate-800 border-slate-200" },
-  { id: "куратор", label: "Куратор", price: 54_990, color: "bg-blue-100 text-blue-800 border-blue-200" },
-  { id: "вип", label: "VIP", price: 79_990, color: "bg-purple-100 text-purple-800 border-purple-200" },
-  { id: "с Василием", label: "С Василием", price: 0, color: "bg-cyan-100 text-cyan-800 border-cyan-200" },
+  { id: "куратор", label: "Обучение с куратором", price: 54_990, color: "bg-blue-100 text-blue-800 border-blue-200" },
+  { id: "сам", label: "Самостоятельное обучение", price: 34_990, color: "bg-slate-100 text-slate-800 border-slate-200" },
+  { id: "вип", label: "Обучение с VIP сопровождением от автора курса", price: 79_990, color: "bg-purple-100 text-purple-800 border-purple-200" },
+  { id: "1 конс", label: "Часовая консультация", price: 5_000, color: "bg-cyan-100 text-cyan-800 border-cyan-200" },
 ];
 
 function getInitialParam(name: string, fallback = "all") {
@@ -73,6 +73,8 @@ export default function Leads() {
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingLeadId, setEditingLeadId] = useState<number | null>(null);
+  const [isSheetsSyncing, setIsSheetsSyncing] = useState(false);
+  const [sheetsSyncMessage, setSheetsSyncMessage] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(location.split("?")[1] ?? "");
@@ -144,6 +146,25 @@ export default function Leads() {
     setTariff("all");
     setStatusFilter("all");
     setSearch("");
+  };
+
+  const handleGoogleSheetsSync = async () => {
+    setIsSheetsSyncing(true);
+    setSheetsSyncMessage("");
+    try {
+      const response = await fetch("/api/integrations/google-sheets/sync", {
+        method: "POST",
+        credentials: "include",
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Не удалось обновить заявки");
+      await queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      setSheetsSyncMessage(`Добавлено: ${result.imported}, пропущено: ${result.skipped}`);
+    } catch (error) {
+      setSheetsSyncMessage(error instanceof Error ? error.message : "Не удалось обновить заявки");
+    } finally {
+      setIsSheetsSyncing(false);
+    }
   };
 
   const handleDragStart = (event: React.DragEvent, id: number) => {
@@ -255,6 +276,13 @@ export default function Leads() {
               {activeFilterCount > 0 ? <RotateCcw className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
             </Button>
 
+            {isAdmin && (
+              <Button type="button" variant="outline" size="sm" className="h-9" onClick={handleGoogleSheetsSync} disabled={isSheetsSyncing}>
+                <RefreshCw className={cn("mr-2 h-4 w-4", isSheetsSyncing && "animate-spin")} />
+                Обновить из Гуглшитс
+              </Button>
+            )}
+
             <Button
               size="sm"
               className="h-9"
@@ -268,6 +296,7 @@ export default function Leads() {
             </Button>
           </div>
         </div>
+        {sheetsSyncMessage && <div className="mt-2 text-sm text-muted-foreground">{sheetsSyncMessage}</div>}
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden p-4 lg:p-6">
@@ -318,6 +347,11 @@ export default function Leads() {
                         >
                           <div className="mb-2 flex items-start justify-between gap-2">
                             <span className="min-w-0 truncate text-sm font-semibold">{lead.clientName}</span>
+                            {lead.source === "Telegram bot" && (
+                              <span className="shrink-0 rounded border border-amber-200 bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+                                Telegram
+                              </span>
+                            )}
                             {lead.tariff && (
                               <span
                                 className={cn(
@@ -383,7 +417,29 @@ function LeadSlideOver({
   const deleteLead = useDeleteLead();
   const queryClient = useQueryClient();
   const [note, setNote] = useState("");
+  const [, navigate] = useLocation();
   const { user } = useAuth();
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [invoiceForm, setInvoiceForm] = useState({ amount: "", description: "" });
+  const [invoiceMessage, setInvoiceMessage] = useState("");
+
+  const loadInvoices = async () => {
+    if (!leadId) return;
+    const response = await fetch(`/api/leads/${leadId}/invoices`, { credentials: "include" });
+    if (response.ok) setInvoices(await response.json());
+  };
+
+  useEffect(() => {
+    void loadInvoices();
+  }, [leadId]);
+
+  useEffect(() => {
+    if (!lead) return;
+    setInvoiceForm({
+      amount: lead.price ? String(lead.price) : "",
+      description: lead.product || lead.tariff || "Консультационные услуги",
+    });
+  }, [lead]);
 
   const handleAddNote = (event: React.FormEvent) => {
     event.preventDefault();
@@ -414,6 +470,75 @@ function LeadSlideOver({
     }
   };
 
+  const handleOpenChat = async () => {
+    if (!leadId) return;
+    await fetch(`/api/chats/from-lead/${leadId}`, {
+      method: "POST",
+      credentials: "include",
+    });
+    navigate(`/chats?leadId=${leadId}`);
+  };
+
+  const invoicePayload = () => ({
+    leadId,
+    clientName: lead?.clientName ?? "",
+    amount: Number(invoiceForm.amount),
+    description: invoiceForm.description,
+  });
+
+  const downloadBlob = async (response: Response, fileName: string) => {
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePreviewInvoice = async () => {
+    setInvoiceMessage("");
+    const response = await fetch("/api/invoices/preview", {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(invoicePayload()),
+    });
+    if (response.ok) await downloadBlob(response, "invoice-preview.pdf");
+    else setInvoiceMessage((await response.json()).error ?? "Не удалось скачать PDF");
+  };
+
+  const handleSaveInvoice = async () => {
+    setInvoiceMessage("");
+    const response = await fetch("/api/invoices", {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(invoicePayload()),
+    });
+    if (!response.ok) {
+      setInvoiceMessage((await response.json()).error ?? "Не удалось сохранить счет");
+      return;
+    }
+    setInvoiceMessage("Счет сохранен в карточку");
+    await loadInvoices();
+  };
+
+  const handleSendInvoice = async (invoiceId: number) => {
+    setInvoiceMessage("");
+    const response = await fetch(`/api/invoices/${invoiceId}/send-telegram`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      setInvoiceMessage((await response.json()).error ?? "Не удалось отправить счет");
+      return;
+    }
+    setInvoiceMessage("Счет отправлен в Telegram");
+    await loadInvoices();
+    queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+  };
+
   return (
     <Sheet open={!!leadId} onOpenChange={(open) => !open && onClose()}>
       <SheetContent className="flex w-[500px] flex-col border-l p-0 sm:w-[540px] sm:max-w-none">
@@ -435,6 +560,10 @@ function LeadSlideOver({
                   </SheetDescription>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleOpenChat}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Чат
+                  </Button>
                   <Button variant="outline" size="icon" onClick={() => onEdit(lead.id)}>
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -474,6 +603,66 @@ function LeadSlideOver({
                       {lead.notes || "Нет заметок"}
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 rounded-lg border bg-card p-5 shadow-sm">
+                <h3 className="flex items-center gap-2 border-b pb-2 text-sm font-semibold">
+                  <FileText className="h-4 w-4" />
+                  Счета
+                </h3>
+
+                <div className="grid grid-cols-[1fr_140px] gap-3">
+                  <div className="space-y-2">
+                    <Label>Описание</Label>
+                    <Input
+                      value={invoiceForm.description}
+                      onChange={(event) => setInvoiceForm({ ...invoiceForm, description: event.target.value })}
+                      placeholder="Описание услуги"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Сумма</Label>
+                    <Input
+                      type="number"
+                      value={invoiceForm.amount}
+                      onChange={(event) => setInvoiceForm({ ...invoiceForm, amount: event.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={handlePreviewInvoice} disabled={!invoiceForm.amount || !invoiceForm.description}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Скачать PDF
+                  </Button>
+                  <Button type="button" size="sm" onClick={handleSaveInvoice} disabled={!invoiceForm.amount || !invoiceForm.description}>
+                    Сохранить в карточку
+                  </Button>
+                </div>
+
+                {invoiceMessage && <div className="text-sm text-muted-foreground">{invoiceMessage}</div>}
+
+                <div className="space-y-2">
+                  {invoices.map((invoice) => (
+                    <div key={invoice.id} className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                      <div className="min-w-0">
+                        <div className="font-medium">{invoice.invoiceNumber}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {invoice.description} · {formatMoney(invoice.amount)} · {invoice.status}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <Button type="button" variant="outline" size="sm" onClick={() => window.open(`/api/invoices/${invoice.id}/pdf`, "_blank")}>
+                          PDF
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => void handleSendInvoice(invoice.id)} disabled={invoice.status === "sent"}>
+                          В Telegram
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {invoices.length === 0 && <div className="text-sm text-muted-foreground">Счетов пока нет</div>}
                 </div>
               </div>
 

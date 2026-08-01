@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable, leadsTable, paymentsTable, plansTable } from "@workspace/db";
-import { eq, and, ne, ilike, SQL } from "drizzle-orm";
+import { eq, and, ne, like, type SQL } from "@workspace/db";
 import {
   GetMyStatsResponse,
   GetMyStatsQueryParams,
@@ -30,7 +30,7 @@ router.get("/workspace/my-stats", async (req, res): Promise<void> => {
 
   // Payments this month
   const paymentConditions: SQL[] = [eq(paymentsTable.managerId, userId)];
-  if (month) paymentConditions.push(ilike(paymentsTable.paymentDate, `${month}%`));
+  if (month) paymentConditions.push(like(paymentsTable.paymentDate, `${month}%`));
 
   const myPayments = await db.select().from(paymentsTable).where(and(...paymentConditions));
   const netProfit = myPayments.reduce((s, p) => s + (p.netProfit ?? 0), 0);
