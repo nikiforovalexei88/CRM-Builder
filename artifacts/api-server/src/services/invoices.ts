@@ -24,7 +24,7 @@ const COMPANY = {
 };
 
 function invoicesDir() {
-  const dir = path.resolve(process.cwd(), "data", "invoices");
+  const dir = path.resolve(process.env.DATA_DIR ?? path.resolve(process.cwd(), "data"), "invoices");
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }

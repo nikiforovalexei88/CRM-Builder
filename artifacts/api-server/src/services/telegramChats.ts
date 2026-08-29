@@ -351,7 +351,7 @@ export async function sendChatMessage(userId: number, chatId: number, text: stri
   let telegramFileId: string | undefined;
 
   if (file?.dataBase64) {
-    const uploadsDir = path.resolve(process.cwd(), "data", "uploads", "telegram");
+    const uploadsDir = path.resolve(process.env.DATA_DIR ?? path.resolve(process.cwd(), "data"), "uploads", "telegram");
     fs.mkdirSync(uploadsDir, { recursive: true });
     const safeName = file.name.replace(/[^\w.\-а-яА-ЯёЁ ]/g, "_");
     attachmentPath = path.join(uploadsDir, `${Date.now()}-${safeName}`);
