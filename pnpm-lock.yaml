@@ -169,9 +169,6 @@ importers:
 
   artifacts/api-server:
     dependencies:
-      '@libsql/win32-x64-msvc':
-        specifier: 0.5.29
-        version: 0.5.29
       '@workspace/api-zod':
         specifier: workspace:*
         version: link:../../lib/api-zod
@@ -620,9 +617,6 @@ importers:
       '@libsql/client':
         specifier: ^0.15.15
         version: 0.15.15
-      '@libsql/win32-x64-msvc':
-        specifier: 0.5.29
-        version: 0.5.29
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@libsql/client@0.15.15)
@@ -3561,7 +3555,8 @@ snapshots:
   '@libsql/linux-x64-musl@0.5.29':
     optional: true
 
-  '@libsql/win32-x64-msvc@0.5.29': {}
+  '@libsql/win32-x64-msvc@0.5.29':
+    optional: true
 
   '@neon-rs/load@0.0.4': {}
 

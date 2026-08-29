@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
-    "@libsql/win32-x64-msvc": "0.5.29",
     "drizzle-orm": "catalog:",
     "drizzle-zod": "^0.8.3",
     "zod": "catalog:"
