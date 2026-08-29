@@ -168,8 +168,12 @@ export async function createInvoice(input: InvoiceInput) {
 
 export async function getInvoiceFile(invoiceId: number) {
   const [invoice] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, invoiceId));
-  if (!invoice?.pdfPath || !fs.existsSync(invoice.pdfPath)) throw new Error("Invoice PDF not found");
-  return { invoice, filePath: invoice.pdfPath, fileName: `${invoice.invoiceNumber}.pdf` };
+  if (!invoice?.pdfPath) throw new Error("Invoice PDF not found");
+  const fileName = `${invoice.invoiceNumber}.pdf`;
+  const fallbackPath = path.join(invoicesDir(), path.basename(invoice.pdfPath));
+  const filePath = fs.existsSync(invoice.pdfPath) ? invoice.pdfPath : fallbackPath;
+  if (!fs.existsSync(filePath)) throw new Error("Invoice PDF not found");
+  return { invoice, filePath, fileName };
 }
 
 export async function sendInvoiceToTelegram(userId: number, invoiceId: number) {
