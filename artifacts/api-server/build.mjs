@@ -33,6 +33,8 @@ async function buildAll() {
       "pdfkit",
       "canvas",
       "bcrypt",
+      "libsql",
+      "@libsql/*",
       "argon2",
       "fsevents",
       "re2",
