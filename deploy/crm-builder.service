@@ -1,0 +1,17 @@
+[Unit]
+Description=CRM Builder Node.js service
+After=network.target
+
+[Service]
+Type=simple
+User=crm-builder
+WorkingDirectory=/var/www/crm-builder
+EnvironmentFile=/var/www/crm-builder/.env.production
+ExecStart=/usr/bin/node --enable-source-maps /var/www/crm-builder/artifacts/api-server/dist/index.mjs
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/crm-builder/app.log
+StandardError=append:/var/log/crm-builder/error.log
+
+[Install]
+WantedBy=multi-user.target
